@@ -85,7 +85,6 @@ public class Main extends JavaPlugin implements Listener {
 
     private HashMap<EntityType, TamingInfo> tames = new HashMap<>();
     private HashMap<UUID, TamedInfo> tamed = new HashMap<>();
-    public static final long COOLDOWN = 200l;
     private HashMap<UUID, Long> cooldowns = new HashMap<>();
 
     private void saveState() {
@@ -152,9 +151,15 @@ public class Main extends JavaPlugin implements Listener {
         return (a == null) ? b : a;
     }
 
+    private long cooldown = 200l;
+    private int tp_chunks = 1;
+
     private void loadConfig() {
         File file = new File("./plugins/extended_taming/config.yml");
         var config = YamlConfiguration.loadConfiguration(file);
+        tp_chunks = config.getInt("tp_chunks", 1);
+        cooldown = config.getLong("cooldown", 200l);
+
         var mobs = config.getMapList("mobs");
         mobs.forEach(mob -> {
             String name = (String)mob.get("name");
@@ -198,7 +203,7 @@ public class Main extends JavaPlugin implements Listener {
         var player_cooldown = this.cooldowns
             .get(event.getPlayer().getUniqueId());
         if (player_cooldown != null &&
-            System.currentTimeMillis() - player_cooldown < COOLDOWN)
+            System.currentTimeMillis() - player_cooldown < this.cooldown)
             return;
 
         this.cooldowns.put(player.getUniqueId(),
@@ -243,6 +248,8 @@ public class Main extends JavaPlugin implements Listener {
                 return;
 
             var info = tamed.get(entity.getUniqueId());
+            if (info.player != event.getPlayer().getUniqueId())
+                return;
             if (info.isSitting()) {
                 // set to following (is aware of surroundings)
                 ((Mob)entity).setAware(true);
@@ -264,6 +271,8 @@ public class Main extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onTarget(EntityTargetEvent event) {
+        if (event.getTarget() == null)
+            return;
         if (!tamed.containsKey(event.getEntity().getUniqueId()))
             return;
 
@@ -283,10 +292,13 @@ public class Main extends JavaPlugin implements Listener {
         tamed.forEach((uuid, b) -> {
             if ((b.types & TameType.FOLLOW) == 0) return;
             if (! b.player.equals(event.getPlayer().getUniqueId())) return;
+            var entity = Bukkit.getEntity(uuid);
 
-            Bukkit
-                .getEntity(uuid)
-                .teleport(event.getPlayer());
+            if (entity.getLocation().distance(event.getTo())
+                < this.tp_chunks * 16)
+                return;
+
+            entity.teleport(event.getPlayer());
             System.out.println("Teleported: " + Bukkit.getEntity(uuid));
         });
     }
