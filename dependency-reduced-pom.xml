@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.mieze.extended_taming</groupId>
-  <artifactId>ExtendedTaming</artifactId>
-  <name>ExtendedTaming</name>
+  <groupId>com.mieze.challenges</groupId>
+  <artifactId>Challenges</artifactId>
+  <name>Challenges</name>
   <version>0.1</version>
-  <description>A spigot plugin for taming of untamable creatures</description>
+  <description>A spigot plugin for various challenges</description>
   <url>http://sgray.me/project/spigotplugin</url>
   <developers>
     <developer>
@@ -77,7 +77,7 @@
     </repository>
   </repositories>
   <properties>
-    <mainClass>com.mieze.extended_taming.Main</mainClass>
+    <mainClass>com.mieze.challenges.Main</mainClass>
     <author>miezekatze</author>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>

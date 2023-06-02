@@ -1,15 +1,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.mieze.extended_taming</groupId>
-    <artifactId>ExtendedTaming</artifactId>
+    <groupId>com.mieze.challenges</groupId>
+    <artifactId>Challenges</artifactId>
     <!-- Version is used in plugin.yml -->
     <version>0.1</version>
     <packaging>jar</packaging>
 
     <!-- Plugin Information -->
     <!-- Name, Description, and URL are used in plugin.yml -->
-    <name>ExtendedTaming</name>
-    <description>A spigot plugin for taming of untamable creatures</description>
+    <name>Challenges</name>
+    <description>A spigot plugin for various challenges</description>
     <url>http://sgray.me/project/spigotplugin</url>
 
     <licenses>
@@ -28,7 +28,7 @@
     <properties>
         <!--  Author and MainClass are used in plugin.yml -->
         <author>miezekatze</author>
-        <mainClass>com.mieze.extended_taming.Main</mainClass>
+        <mainClass>com.mieze.challenges.Main</mainClass>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
