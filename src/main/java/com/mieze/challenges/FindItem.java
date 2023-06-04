@@ -2,37 +2,19 @@
 
 package com.mieze.challenges;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Stream;
 
-import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Listener;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import static org.bukkit.Material.*;
 
-import dev.jorel.commandapi.CommandAPI;
-import dev.jorel.commandapi.CommandAPICommand;
-import dev.jorel.commandapi.CommandAPIConfig;
-import dev.jorel.commandapi.arguments.Argument;
-import dev.jorel.commandapi.arguments.IntegerArgument;
-import dev.jorel.commandapi.arguments.LiteralArgument;
-import dev.jorel.commandapi.executors.PlayerCommandExecutor;
+import com.mieze.challenges.Challenges.Challenge;
 
-public class Main extends JavaPlugin implements Listener {
-    private int amount = 0;
-    private int current = 0;
+public class FindItem implements Challenge {
+    private final Material material;
 
 // {{{ public static Set<Material> validMaterials
     public static Set<Material> validMaterials = Set.of(new Material[]{
@@ -271,194 +253,41 @@ public class Main extends JavaPlugin implements Listener {
         PEARLESCENT_FROGLIGHT, ECHO_SHARD
     });
 // }}}
-    private Thread challengeThread = null;
-
-    @Override
-    public void onLoad() {
-        CommandAPI.onLoad(new CommandAPIConfig().silentLogs(true));
-    }
-
-    private List<Challenge> challenges = new ArrayList<>();
 
     private static boolean isValidItem(Material m) {
         return validMaterials.contains(m);
     }
 
-    private enum Challenge {
-        FIND_ITEM("Get the item `%s'", 60*5, (vals, player) -> {
-            final boolean contains[] = {false};
-            player.getInventory().forEach(item -> {
-                System.out.print(or(item, ItemStack::getType) + " | " + (Material)vals.get(0));
-                if (item != null && item.getType() == (Material) vals.get(0)) {
-                    Bukkit.broadcastMessage("found item!");
-                    contains[0] = true;
-                }
-            });
-            return contains[0];
-        }, () -> {
-            Material[] items = Material.values();
-            Supplier<Material> f = () -> {
-                return items[(int) (Math.random() * items.length)];
-            };
-            Material m = null;
-            do {
-                m = f.get();
-            } while (!isValidItem(m));
-            return List.of(m);
-        }, vals -> List.of(((Material) vals.get(0)).name().toLowerCase()));
-
-        private final String description;
-        private final BiFunction<List<?>, Player, Boolean> checkFunction;
-        private final Function<List<?>, List<String>> stringConverter;
-        protected Supplier<List<?>> values;
-        protected final int seconds;
-        Challenge(String description, int seconds, BiFunction<List<?>, Player, Boolean> checkFunction, 
-                Supplier<List<?>> initValue, Function<List<?>, List<String>> stringConverter) {
-            this.values = initValue;
-            this.description = description;
-            this.checkFunction = checkFunction;
-            this.seconds = seconds;
-            this.stringConverter = stringConverter;
-        }
-
-        public String getDescription(List<?> vals) {
-            return this.description.formatted(stringConverter.apply(vals).toArray());
-        }
-
-        public boolean check(List<?> vals, Player player) {
-            return this.checkFunction.apply(vals, player);
-        }
-
-        public static Challenge getRandom() {
-            return Challenge.values()[(int) (Math.random() * Challenge.values().length)];
-        }
-   }
-
-    private Challenge nextChallenge() {
-        if (challenges.size() >= Challenge.values().length) {
-            challenges.clear();
-            Bukkit.broadcastMessage("All challenges done! Resetting...");
-        }
-
-        Challenge newChallenge; 
+    public FindItem() {
+        Material[] items = Material.values();
+        Supplier<Material> f = () -> {
+            return items[(int) (Math.random() * items.length)];
+        };
+        Material m = null;
         do {
-            newChallenge = Challenge.getRandom();
-        } while (challenges.contains(newChallenge));
-        challenges.add(newChallenge);
-        return newChallenge;
-     }
-
-    static private<T, U> U or(T a, Function<T, U> f) {
-        return a == null ? null : f.apply(a);
+            m = f.get();
+        } while (!isValidItem(m));
+        this.material = m;
+    }
+   
+    @Override
+    public String getDescription() {
+        return ("Get the item `"+ChatColor.GREEN+"%s"+ChatColor.WHITE + "'").formatted(material.toString().toLowerCase());
     }
 
-    static private<T> void orVoid(T a, Consumer<T> f) {
-        if (a != null) f.accept(a);
+    @Override
+    public int getMaxTime() {
+        return 60*5;
     }
 
-    private static String timeString(int secs) {
-        return "%d:%02d".formatted(secs / 60, secs % 60);
-    }
-
-    private Runnable challengeRunnable(Challenge c) {
-        return () -> {
-            var vals = c.values.get();
-            var secs = c.seconds;
-            var barText = c.getDescription(vals);
-            var bar = Bukkit.createBossBar(barText + " [%s left]".formatted(timeString(secs)), BarColor.RED, BarStyle.SOLID);
-            Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
-            var startTime = System.currentTimeMillis();
-            try {
-                while (true) {
-                    var winPlayers = Bukkit
-                        .getOnlinePlayers()
-                        .stream()
-                        .map(x -> c.check(vals, x) ? x : null)
-                        .filter(x -> x != null)
-                        .toList();
-                    if (winPlayers.size() > 0) {
-                        Bukkit.broadcastMessage("Challange fullfilled! (Winners: %s)".formatted(winPlayers));
-                        break;
-                    }
-
-                    // update bar
-                    var time = (System.currentTimeMillis() - startTime) / 1000.0;
-                    if (time > secs) {
-                        Bukkit.broadcastMessage("Challange time ran out! (Not winners)");
-                        break;
-                    }
-                    var progress = (float) time / (float) secs;
-                    bar.setProgress(progress);
-
-                    var left = secs - (int) time;
-                    bar.setTitle(barText + " [%s left]".formatted(timeString(left)));
-
-                    Thread.sleep(100);
-                }
-            } catch (InterruptedException e) {
-            } finally {
-                bar.removeAll();
-                this.current++;
-                if (this.current < this.amount)
-                    startNextChallenge();
+    @Override
+    public boolean isFullfilledBy(Player player) {
+        final boolean contains[] = {false};
+        player.getInventory().forEach(item -> {
+            if (item != null && item.getType() == this.material) {
+                contains[0] = true;
             }
-        };
-    }
-
-    private void startNextChallenge() {
-        Bukkit.broadcastMessage("starting challenge [%d/%d]...".formatted(this.current+1, this.amount));
-        var challenge = nextChallenge();
-        orVoid(this.challengeThread, Thread::interrupt);
-        this.challengeThread = new Thread(challengeRunnable(challenge));
-        this.challengeThread.start();
-    }
-
-    private PlayerCommandExecutor handleCommand(String command) {
-        return switch (command) {
-            case "start" -> (a, b) -> {
-                this.current = 0;
-                this.amount = (int) b[0];
-                startNextChallenge();
-            };
-            case "stop" -> (a, b) -> {
-                 orVoid(this.challengeThread, Thread::interrupt);
-                 this.challengeThread = null;
-            };
-            default -> (_x, _y) -> Bukkit.broadcastMessage("invalid command `/challenge " + command + "'!");
-        };
-    }
-
-    private void addCommandVariant(String s, Argument<?>... args) {
-        Stream<Argument<?>> a = Stream
-            .of(Stream.of(new LiteralArgument(s)), Stream.of(args))
-            .flatMap(x -> x);
-
-        new CommandAPICommand("challenge")
-            .withArguments(a.toList())
-            .executesPlayer(handleCommand(s))
-            .register();
-    }
-
-    private void registerCommand() {
-        addCommandVariant("start", new IntegerArgument("amount"));
-        addCommandVariant("stop");
-    }
-    
-    @Override
-    public void onEnable() {
-        CommandAPI.onEnable(this);
-        Bukkit.getPluginManager().registerEvents(this, this);
-        Bukkit.getLogger().info("Hello, World!");
-
-        registerCommand();
-    }
-
-    @Override
-    public void onDisable() {
-        CommandAPI.onDisable();
-        // stop all future challenges
-        this.current = this.amount;
-        orVoid(this.challengeThread, Thread::interrupt);
-        Bukkit.getLogger().info("Goodbye, World!");
+        });
+        return contains[0];
     }
 }
