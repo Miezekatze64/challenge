@@ -44,7 +44,7 @@ public class Challenges extends JavaPlugin implements Listener {
     private List<Class<? extends Challenge>> usedChallenges = new ArrayList<>();
 
     public interface Challenge {
-        public String getDescription();
+        public String getChallengeDescription();
         public int getMaxTime();
         public boolean isFullfilledBy(Player player);
     }
@@ -96,7 +96,7 @@ public class Challenges extends JavaPlugin implements Listener {
                 return;
             }
             var secs = c.getMaxTime();
-            var barText = c.getDescription();
+            var barText = c.getChallengeDescription();
             var bar = Bukkit.createBossBar("loading...", BarColor.RED, BarStyle.SOLID);
             sendMessage("New challenge: " + barText, 1);
             Bukkit.getOnlinePlayers().forEach(bar::addPlayer);
@@ -199,11 +199,11 @@ public class Challenges extends JavaPlugin implements Listener {
         addCommandVariant("stop");
     }
 
-    private void registerChallenge(Class<? extends Challenge> c) {
+    public void registerChallenge(Class<? extends Challenge> c) {
         challengeClasses.add(c);
     }
 
-    public Challenges getInstance() {
+    public static Challenges getInstance() {
         return Challenges.instance;
     }
     
@@ -215,7 +215,6 @@ public class Challenges extends JavaPlugin implements Listener {
         Bukkit.getLogger().info("Hello, World!");
 
         registerCommand();
-        registerChallenge(FindItem.class);
     }
 
     @Override
